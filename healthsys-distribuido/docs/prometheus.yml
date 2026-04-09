@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  - job_name: 'servico-usuarios'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['servico-usuarios:8081']
+
+  - job_name: 'servico-pacientes'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['servico-pacientes:8082']
+
+  - job_name: 'servico-prontuario'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['servico-prontuario:8083']
+
+  - job_name: 'servico-triagem'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['servico-triagem:8084']
+
+  - job_name: 'servico-notificacoes'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['servico-notificacoes:8085']

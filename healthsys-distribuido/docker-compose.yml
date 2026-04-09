@@ -1,0 +1,212 @@
+networks:
+  healthsys-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+
+services:
+
+  # ─── Infraestrutura ───────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: healthsys-postgres
+    environment:
+      POSTGRES_DB: healthsys
+      POSTGRES_USER: healthsys
+      POSTGRES_PASSWORD: healthsys123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docs/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - healthsys-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthsys"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: healthsys-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - healthsys-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: healthsys-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - healthsys-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: healthsys-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - healthsys-network
+
+  # ─── Serviços Backend ─────────────────────────────────────────────────────────
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: healthsys-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - servico-usuarios
+      - servico-pacientes
+      - servico-prontuario
+      - servico-triagem
+      - servico-notificacoes
+    networks:
+      - healthsys-network
+
+  servico-usuarios:
+    build: ./servico-usuarios
+    container_name: healthsys-usuarios
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/healthsys
+      SPRING_DATASOURCE_USERNAME: healthsys
+      SPRING_DATASOURCE_PASSWORD: healthsys123
+      JWT_SECRET: healthsys-jwt-secret-unifor-2026-must-be-at-least-256-bits-long
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - healthsys-network
+
+  servico-pacientes:
+    build: ./servico-pacientes
+    container_name: healthsys-pacientes
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/healthsys
+      SPRING_DATASOURCE_USERNAME: healthsys
+      SPRING_DATASOURCE_PASSWORD: healthsys123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - healthsys-network
+
+  servico-prontuario:
+    build: ./servico-prontuario
+    container_name: healthsys-prontuario
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/healthsys
+      SPRING_DATASOURCE_USERNAME: healthsys
+      SPRING_DATASOURCE_PASSWORD: healthsys123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - healthsys-network
+
+  servico-triagem:
+    build: ./servico-triagem
+    container_name: healthsys-triagem
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/healthsys
+      SPRING_DATASOURCE_USERNAME: healthsys
+      SPRING_DATASOURCE_PASSWORD: healthsys123
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - healthsys-network
+
+  servico-notificacoes:
+    build: ./servico-notificacoes
+    container_name: healthsys-notificacoes
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/healthsys
+      SPRING_DATASOURCE_USERNAME: healthsys
+      SPRING_DATASOURCE_PASSWORD: healthsys123
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - healthsys-network
+
+  # ─── Frontend ─────────────────────────────────────────────────────────────────
+
+  frontend:
+    build: ./frontend
+    container_name: healthsys-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - healthsys-network
+
+  # ─── Monitoramento ────────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: healthsys-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - healthsys-network
+
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: healthsys-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: healthsys123
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - healthsys-network

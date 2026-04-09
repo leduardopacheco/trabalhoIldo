@@ -1,0 +1,92 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: servico-usuarios
+          uri: http://servico-usuarios:8081
+          predicates:
+            - Path=/api/auth/**, /api/usuarios/**
+          filters:
+            - StripPrefix=0
+
+        - id: servico-pacientes
+          uri: http://servico-pacientes:8082
+          predicates:
+            - Path=/api/pacientes/**
+          filters:
+            - StripPrefix=0
+
+        - id: servico-prontuario
+          uri: http://servico-prontuario:8083
+          predicates:
+            - Path=/api/prontuarios/**, /api/consultas/**, /api/exames/**, /api/medicamentos/**
+          filters:
+            - StripPrefix=0
+
+        - id: servico-triagem
+          uri: http://servico-triagem:8084
+          predicates:
+            - Path=/api/triagens/**, /api/atendimentos/**
+          filters:
+            - StripPrefix=0
+
+        - id: servico-notificacoes
+          uri: http://servico-notificacoes:8085
+          predicates:
+            - Path=/api/notificacoes/**
+          filters:
+            - StripPrefix=0
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      show-details: always
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  cloud:
+    gateway:
+      routes:
+        - id: servico-usuarios
+          uri: http://servico-usuarios:8081
+          predicates:
+            - Path=/api/auth/**, /api/usuarios/**
+
+        - id: servico-pacientes
+          uri: http://servico-pacientes:8082
+          predicates:
+            - Path=/api/pacientes/**
+
+        - id: servico-prontuario
+          uri: http://servico-prontuario:8083
+          predicates:
+            - Path=/api/prontuarios/**, /api/consultas/**, /api/exames/**, /api/medicamentos/**
+
+        - id: servico-triagem
+          uri: http://servico-triagem:8084
+          predicates:
+            - Path=/api/triagens/**, /api/atendimentos/**
+
+        - id: servico-notificacoes
+          uri: http://servico-notificacoes:8085
+          predicates:
+            - Path=/api/notificacoes/**

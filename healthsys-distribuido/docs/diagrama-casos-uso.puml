@@ -1,0 +1,76 @@
+@startuml diagrama-casos-uso
+!theme plain
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FAFAFA
+skinparam ArrowColor #333333
+skinparam ActorBorderColor #555555
+
+title HealthSys Distribuído – Diagrama de Casos de Uso
+
+' ─── Atores ───────────────────────────────────────────────
+actor "Administrador\ndo Sistema"   as ADMIN   #LightBlue
+actor "Atendente /\nRecepção"       as ATEND   #LightGreen
+actor "Profissional\nde Saúde"      as PROF    #LightYellow
+actor "Gestor\nHospitalar"          as GESTOR  #LightPink
+
+' ─── Sistema ──────────────────────────────────────────────
+rectangle "HealthSys Distribuído" {
+
+    package "Autenticação e Acesso" {
+        usecase "UC01 – Autenticar\nusuário no sistema"    as UC01
+        usecase "UC02 – Gerenciar\nusuários e perfis"      as UC02
+    }
+
+    package "Gestão de Pacientes" {
+        usecase "UC03 – Cadastrar\npaciente"               as UC03
+        usecase "UC04 – Consultar histórico\ndo paciente"  as UC04
+        usecase "UC07 – Registrar\nalergias e vacinas"     as UC07
+    }
+
+    package "Prontuário Eletrônico" {
+        usecase "UC05 – Registrar\nprontuário eletrônico"  as UC05
+        usecase "UC06 – Registrar consultas,\nexames e medicamentos" as UC06
+        usecase "UC10 – Visualizar prontuário\ne histórico clínico"  as UC10
+    }
+
+    package "Teletriagem" {
+        usecase "UC08 – Realizar\nteletriagem"             as UC08
+        usecase "UC09 – Avaliar sintomas\ne classificar risco" as UC09
+    }
+
+    package "Comunicação e Gestão" {
+        usecase "UC11 – Comunicar-se com\noutros profissionais" as UC11
+        usecase "UC12 – Visualizar dashboard\nhospitalar e relatórios" as UC12
+        usecase "UC13 – Receber notificações\ne alertas do sistema" as UC13
+    }
+}
+
+' ─── Associações ──────────────────────────────────────────
+ADMIN  --> UC01
+ADMIN  --> UC02
+ADMIN  --> UC13
+
+ATEND  --> UC01
+ATEND  --> UC03
+ATEND  --> UC04
+
+PROF   --> UC01
+PROF   --> UC04
+PROF   --> UC05
+PROF   --> UC06
+PROF   --> UC07
+PROF   --> UC08
+PROF   --> UC09
+PROF   --> UC10
+PROF   --> UC11
+PROF   --> UC13
+
+GESTOR --> UC01
+GESTOR --> UC12
+
+' ─── Inclusões e Extensões ────────────────────────────────
+UC08 ..> UC09 : <<include>>
+UC05 ..> UC06 : <<extend>>
+
+@enduml
