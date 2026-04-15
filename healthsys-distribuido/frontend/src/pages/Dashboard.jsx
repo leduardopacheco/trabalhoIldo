@@ -63,7 +63,7 @@ export default function Dashboard() {
       </div>
 
       {/* Cards */}
-      <div className="grid-4" style={{ marginBottom: 32 }}>
+      <div className="grid-3" style={{ marginBottom: 32 }}>
         <StatCard
           label="Triagens aguardando"
           value={loading ? '…' : triagens.length}
@@ -84,13 +84,6 @@ export default function Dashboard() {
           icon="🔔"
           color="var(--warning)"
           sub="não lidas"
-        />
-        <StatCard
-          label="Serviços ativos"
-          value="5"
-          icon="⚡"
-          color="var(--success)"
-          sub="microsserviços online"
         />
       </div>
 
