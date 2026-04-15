@@ -1,0 +1,35 @@
+# Java compiled
+*.class
+*.jar
+*.war
+*.ear
+target/
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+mvnw
+mvnw.cmd
+
+# Node / React
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+
+# Logs
+*.log
+logs/
+
+# PDFs e arquivos temporários
+*.pdf
+*.ppm
+*.png.tmp
