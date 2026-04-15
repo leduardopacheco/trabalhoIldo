@@ -1,43 +1,33 @@
 import { useEffect, useState } from 'react'
 import { authService, usuarioService } from '../services/api'
 
-const inputStyle = { padding: 8, border: '1px solid #ccc', borderRadius: 4, width: '100%', boxSizing: 'border-box' }
-const btnStyle = { padding: '8px 20px', background: '#0066cc', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }
-
-const perfilLabel = {
+const PERFIL_LABEL = {
   ADMIN: 'Administrador',
-  PROFISSIONAL_SAUDE: 'Profissional de Saúde',
+  PROFISSIONAL_SAUDE: 'Prof. de Saúde',
   ATENDENTE: 'Atendente',
   GESTOR: 'Gestor',
-}
-
-const perfilCor = {
-  ADMIN: '#e53e3e',
-  PROFISSIONAL_SAUDE: '#38a169',
-  ATENDENTE: '#3182ce',
-  GESTOR: '#d69e2e',
 }
 
 const FORM_VAZIO = { nome: '', email: '', senha: '', perfil: 'ATENDENTE' }
 
 export default function Usuarios() {
-  const [usuarios, setUsuarios] = useState([])
-  const [form, setForm] = useState(FORM_VAZIO)
+  const [usuarios, setUsuarios]       = useState([])
+  const [form, setForm]               = useState(FORM_VAZIO)
   const [mostrarForm, setMostrarForm] = useState(false)
-  const [carregando, setCarregando] = useState(false)
-  const [salvando, setSalvando] = useState(false)
-  const [erro, setErro] = useState('')
-  const [sucesso, setSucesso] = useState('')
+  const [loading, setLoading]         = useState(true)
+  const [salvando, setSalvando]       = useState(false)
+  const [erro, setErro]               = useState('')
+  const [sucesso, setSucesso]         = useState('')
 
   async function carregar() {
-    setCarregando(true)
+    setLoading(true)
     try {
       const { data } = await usuarioService.listar()
-      setUsuarios(data)
+      setUsuarios(data || [])
     } catch {
       setErro('Erro ao carregar usuários.')
     } finally {
-      setCarregando(false)
+      setLoading(false)
     }
   }
 
@@ -59,15 +49,14 @@ export default function Usuarios() {
       setForm(FORM_VAZIO)
       carregar()
     } catch (err) {
-      const msg = err.response?.data?.message || 'Erro ao cadastrar usuário.'
-      setErro(msg)
+      setErro(err.response?.data?.message || 'Erro ao cadastrar usuário.')
     } finally {
       setSalvando(false)
     }
   }
 
   async function handleDesativar(id, nome) {
-    if (!confirm(`Desativar usuário "${nome}"?`)) return
+    if (!confirm(`Desativar o usuário "${nome}"?`)) return
     try {
       await usuarioService.desativar(id)
       setSucesso(`Usuário "${nome}" desativado.`)
@@ -79,137 +68,175 @@ export default function Usuarios() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1>Usuários</h1>
-        <button style={btnStyle} onClick={() => { setMostrarForm(!mostrarForm); setErro(''); setSucesso('') }}>
-          {mostrarForm ? 'Cancelar' : '+ Novo Usuário'}
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Usuários</h1>
+          <p className="page-subtitle">Gerenciamento de contas e perfis de acesso</p>
+        </div>
+        <button
+          className={mostrarForm ? 'btn btn-ghost' : 'btn btn-primary'}
+          onClick={() => { setMostrarForm(!mostrarForm); setErro(''); setSucesso('') }}
+        >
+          {mostrarForm ? '✕ Cancelar' : '+ Novo Usuário'}
         </button>
       </div>
 
+      {/* Alertas */}
       {sucesso && (
-        <div style={{ background: '#f0fff4', border: '1px solid #9ae6b4', borderRadius: 4, padding: 12, marginBottom: 16, color: '#276749' }}>
-          {sucesso}
+        <div className="alert alert-success" style={{ marginBottom: 20 }}>
+          <span>✓</span> {sucesso}
         </div>
       )}
-
       {erro && (
-        <div style={{ background: '#fff5f5', border: '1px solid #fc8181', borderRadius: 4, padding: 12, marginBottom: 16, color: '#c53030' }}>
-          {erro}
+        <div className="alert alert-error" style={{ marginBottom: 20 }}>
+          <span>⚠️</span> {erro}
         </div>
       )}
 
-      {/* Formulário de cadastro */}
+      {/* Formulário */}
       {mostrarForm && (
-        <form onSubmit={handleCadastrar} style={{ background: '#fff', padding: 24, borderRadius: 8, marginBottom: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: 16 }}>Cadastrar Novo Usuário</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4 }}>Nome completo *</label>
-              <input
-                style={inputStyle}
-                required
-                value={form.nome}
-                onChange={e => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Dr. João Silva"
-              />
+        <div className="card" style={{ padding: 28, marginBottom: 28 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: 'var(--gray-800)' }}>
+            Cadastrar Novo Usuário
+          </h2>
+          <form onSubmit={handleCadastrar}>
+            <div className="grid-2" style={{ marginBottom: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Nome completo *</label>
+                <input
+                  className="form-input"
+                  required
+                  placeholder="Ex: Dr. João Silva"
+                  value={form.nome}
+                  onChange={e => setForm({ ...form, nome: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">E-mail *</label>
+                <input
+                  className="form-input"
+                  type="email"
+                  required
+                  placeholder="email@healthsys.com"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Senha * (mín. 6 caracteres)</label>
+                <input
+                  className="form-input"
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="••••••••"
+                  value={form.senha}
+                  onChange={e => setForm({ ...form, senha: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Perfil *</label>
+                <select
+                  className="form-input"
+                  value={form.perfil}
+                  onChange={e => setForm({ ...form, perfil: e.target.value })}
+                >
+                  <option value="ATENDENTE">Atendente</option>
+                  <option value="PROFISSIONAL_SAUDE">Profissional de Saúde</option>
+                  <option value="GESTOR">Gestor</option>
+                  <option value="ADMIN">Administrador</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4 }}>E-mail *</label>
-              <input
-                type="email"
-                style={inputStyle}
-                required
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                placeholder="email@healthsys.com"
-              />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="submit" className="btn btn-primary" disabled={salvando}>
+                {salvando ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Salvando...</> : 'Cadastrar'}
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => { setMostrarForm(false); setErro('') }}>
+                Cancelar
+              </button>
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4 }}>Senha * (mín. 6 caracteres)</label>
-              <input
-                type="password"
-                style={inputStyle}
-                required
-                minLength={6}
-                value={form.senha}
-                onChange={e => setForm({ ...form, senha: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 4 }}>Perfil *</label>
-              <select
-                style={inputStyle}
-                value={form.perfil}
-                onChange={e => setForm({ ...form, perfil: e.target.value })}
-              >
-                <option value="ATENDENTE">Atendente</option>
-                <option value="PROFISSIONAL_SAUDE">Profissional de Saúde</option>
-                <option value="GESTOR">Gestor</option>
-                <option value="ADMIN">Administrador</option>
-              </select>
-            </div>
-          </div>
-          <button type="submit" disabled={salvando} style={{ ...btnStyle, marginTop: 16, opacity: salvando ? 0.7 : 1 }}>
-            {salvando ? 'Salvando...' : 'Cadastrar Usuário'}
-          </button>
-        </form>
+          </form>
+        </div>
       )}
 
       {/* Tabela */}
-      {carregando ? (
-        <p style={{ color: '#888' }}>Carregando usuários...</p>
+      {loading ? (
+        <div className="loading-block card"><span className="spinner" /> Carregando...</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-          <thead>
-            <tr style={{ background: '#f4f4f4' }}>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Nome</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>E-mail</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Perfil</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Status</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuarios.length === 0 ? (
-              <tr>
-                <td colSpan={5} style={{ padding: 16, color: '#888', textAlign: 'center' }}>
-                  Nenhum usuário encontrado.
-                </td>
-              </tr>
-            ) : usuarios.map(u => (
-              <tr key={u.id} style={{ borderTop: '1px solid #eee', opacity: u.ativo ? 1 : 0.5 }}>
-                <td style={{ padding: '12px 16px' }}>{u.nome}</td>
-                <td style={{ padding: '12px 16px', color: '#555' }}>{u.email}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{
-                    background: perfilCor[u.perfil] || '#ccc',
-                    color: '#fff',
-                    padding: '2px 10px',
-                    borderRadius: 12,
-                    fontSize: 12
-                  }}>
-                    {perfilLabel[u.perfil] || u.perfil}
-                  </span>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{ color: u.ativo ? '#38a169' : '#e53e3e', fontWeight: 'bold', fontSize: 13 }}>
-                    {u.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  {u.ativo && (
-                    <button
-                      style={{ padding: '4px 12px', background: '#e53e3e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
-                      onClick={() => handleDesativar(u.id, u.nome)}
-                    >
-                      Desativar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Perfil</th>
+                  <th>Status</th>
+                  <th style={{ width: 110 }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usuarios.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--gray-400)', padding: 32 }}>
+                      Nenhum usuário encontrado.
+                    </td>
+                  </tr>
+                ) : usuarios.map(u => (
+                  <tr key={u.id} style={{ opacity: u.ativo ? 1 : 0.5 }}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: 'var(--primary-light)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 700, color: 'var(--primary)',
+                          flexShrink: 0,
+                        }}>
+                          {u.nome?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <span style={{ fontWeight: 500 }}>{u.nome}</span>
+                      </div>
+                    </td>
+                    <td style={{ color: 'var(--gray-500)' }}>{u.email}</td>
+                    <td>
+                      <span className={`badge perfil-${u.perfil}`}>
+                        {PERFIL_LABEL[u.perfil] || u.perfil}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        fontSize: 12, fontWeight: 600,
+                        color: u.ativo ? 'var(--success)' : 'var(--danger)',
+                      }}>
+                        <span style={{
+                          width: 7, height: 7, borderRadius: '50%',
+                          background: u.ativo ? 'var(--success)' : 'var(--danger)',
+                          display: 'inline-block',
+                        }} />
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td>
+                      {u.ativo && (
+                        <button
+                          className="btn btn-sm"
+                          style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}
+                          onClick={() => handleDesativar(u.id, u.nome)}
+                        >
+                          Desativar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -55,4 +55,17 @@ public class ProntuarioController {
     public ResponseEntity<Exame> adicionarExame(@PathVariable Long id, @Valid @RequestBody Exame exame) {
         return ResponseEntity.status(201).body(prontuarioService.adicionarExame(id, exame));
     }
+
+    @GetMapping("/{id}/medicamentos")
+    public ResponseEntity<List<Medicamento>> listarMedicamentos(@PathVariable Long id) {
+        return ResponseEntity.ok(prontuarioService.listarMedicamentos(id));
+    }
+
+    @PostMapping("/{id}/consultas/{idConsulta}/medicamentos")
+    public ResponseEntity<Medicamento> adicionarMedicamento(
+            @PathVariable Long id,
+            @PathVariable Long idConsulta,
+            @Valid @RequestBody Medicamento medicamento) {
+        return ResponseEntity.status(201).body(prontuarioService.adicionarMedicamento(id, idConsulta, medicamento));
+    }
 }

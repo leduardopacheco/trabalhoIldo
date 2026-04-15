@@ -53,6 +53,8 @@ export const prontuarioService = {
   adicionarConsulta: (id, dados) => api.post(`/prontuarios/${id}/consultas`, dados),
   listarExames: (id) => api.get(`/prontuarios/${id}/exames`),
   adicionarExame: (id, dados) => api.post(`/prontuarios/${id}/exames`, dados),
+  listarMedicamentos: (id) => api.get(`/prontuarios/${id}/medicamentos`),
+  adicionarMedicamento: (id, idConsulta, dados) => api.post(`/prontuarios/${id}/consultas/${idConsulta}/medicamentos`, dados),
 }
 
 export const triagemService = {

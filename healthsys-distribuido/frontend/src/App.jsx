@@ -3,7 +3,9 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Pacientes from './pages/Pacientes'
 import Triagem from './pages/Triagem'
+import ProntuarioLista from './pages/ProntuarioLista'
 import Prontuario from './pages/Prontuario'
+import Notificacoes from './pages/Notificacoes'
 import Usuarios from './pages/Usuarios'
 import Login from './pages/Login'
 
@@ -28,7 +30,9 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="pacientes" element={<Pacientes />} />
           <Route path="triagem" element={<Triagem />} />
+          <Route path="prontuario-lista" element={<ProntuarioLista />} />
           <Route path="prontuario/:id" element={<Prontuario />} />
+          <Route path="notificacoes" element={<Notificacoes />} />
           <Route path="usuarios" element={<Usuarios />} />
         </Route>
       </Routes>
