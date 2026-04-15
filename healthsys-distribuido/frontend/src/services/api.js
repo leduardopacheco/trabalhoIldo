@@ -61,6 +61,7 @@ export const triagemService = {
   realizar: (dados) => api.post('/triagens', dados),
   listarAguardando: () => api.get('/triagens/aguardando'),
   listarEmAtendimento: () => api.get('/triagens/em-atendimento'),
+  listarConcluidas: () => api.get('/triagens/concluidas'),
   listarPorPaciente: (id) => api.get(`/triagens/paciente/${id}`),
   atualizarStatus: (id, status) => api.patch(`/triagens/${id}/status`, null, { params: { status } }),
 }

@@ -16,6 +16,7 @@ const FORM_VAZIO = { idPaciente: '', idUsuario: 1, sintomas: '', nivelRisco: 'VE
 export default function Triagem() {
   const [aguardando, setAguardando]       = useState([])
   const [emAtendimento, setEmAtendimento] = useState([])
+  const [concluidas, setConcluidas]       = useState([])
   const [pacientes, setPacientes]         = useState([])
   const [buscaPac, setBuscaPac]           = useState('')
   const [form, setForm]                   = useState(FORM_VAZIO)
@@ -37,14 +38,17 @@ export default function Triagem() {
     Promise.all([
       triagemService.listarAguardando(),
       triagemService.listarEmAtendimento(),
+      triagemService.listarConcluidas(),
     ])
-      .then(([r1, r2]) => {
+      .then(([r1, r2, r3]) => {
         setAguardando(r1.data || [])
         setEmAtendimento(r2.data || [])
+        setConcluidas(r3.data || [])
       })
       .catch(() => {
         setAguardando([])
         setEmAtendimento([])
+        setConcluidas([])
       })
       .finally(() => setLoading(false))
   }
@@ -73,7 +77,7 @@ export default function Triagem() {
     carregar()
   }
 
-  const totalAtivos = aguardando.length + emAtendimento.length
+  const totalAtivos = aguardando.length + emAtendimento.length + concluidas.length
 
   return (
     <div>
@@ -189,7 +193,7 @@ export default function Triagem() {
       {!loading && totalAtivos > 0 && (
         <div className="grid-5" style={{ marginBottom: 24 }}>
           {RISCOS.map(r => {
-            const count = [...aguardando, ...emAtendimento].filter(t => t.nivelRisco === r).length
+            const count = [...aguardando, ...emAtendimento, ...concluidas].filter(t => t.nivelRisco === r).length
             return (
               <div key={r} className="card" style={{ padding: '12px 16px', borderTop: `3px solid var(--risco-${r.toLowerCase()})` }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{r}</div>
@@ -237,6 +241,15 @@ export default function Triagem() {
                 ✓ Concluir
               </button>
             )}
+          />
+
+          {/* Seção: Concluídas */}
+          <Section
+            titulo="Concluídos"
+            cor="var(--gray-400)"
+            icone="✅"
+            lista={concluidas}
+            acoes={() => null}
           />
 
           {totalAtivos === 0 && (

@@ -43,6 +43,11 @@ public class TriagemController {
         return ResponseEntity.ok(triagemService.listarEmAtendimento());
     }
 
+    @GetMapping("/api/triagens/concluidas")
+    public ResponseEntity<List<Triagem>> listarConcluidas() {
+        return ResponseEntity.ok(triagemService.listarConcluidas());
+    }
+
     @PatchMapping("/api/triagens/{id}/status")
     public ResponseEntity<Triagem> atualizarStatus(
             @PathVariable Long id,
