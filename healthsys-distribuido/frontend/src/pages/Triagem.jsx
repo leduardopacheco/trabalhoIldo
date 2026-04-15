@@ -14,14 +14,15 @@ const RISCO_ICON = { VERMELHO: '🔴', LARANJA: '🟠', AMARELO: '🟡', VERDE: 
 const FORM_VAZIO = { idPaciente: '', idUsuario: 1, sintomas: '', nivelRisco: 'VERDE' }
 
 export default function Triagem() {
-  const [triagens, setTriagens]       = useState([])
-  const [pacientes, setPacientes]     = useState([])
-  const [buscaPac, setBuscaPac]       = useState('')
-  const [form, setForm]               = useState(FORM_VAZIO)
-  const [mostrarForm, setMostrarForm] = useState(false)
-  const [loading, setLoading]         = useState(true)
-  const [salvando, setSalvando]       = useState(false)
-  const [erro, setErro]               = useState('')
+  const [aguardando, setAguardando]       = useState([])
+  const [emAtendimento, setEmAtendimento] = useState([])
+  const [pacientes, setPacientes]         = useState([])
+  const [buscaPac, setBuscaPac]           = useState('')
+  const [form, setForm]                   = useState(FORM_VAZIO)
+  const [mostrarForm, setMostrarForm]     = useState(false)
+  const [loading, setLoading]             = useState(true)
+  const [salvando, setSalvando]           = useState(false)
+  const [erro, setErro]                   = useState('')
 
   useEffect(() => {
     pacienteService.listar().then(r => setPacientes(r.data || [])).catch(() => {})
@@ -33,9 +34,18 @@ export default function Triagem() {
 
   function carregar() {
     setLoading(true)
-    triagemService.listarAguardando()
-      .then(r => setTriagens(r.data || []))
-      .catch(() => setTriagens([]))
+    Promise.all([
+      triagemService.listarAguardando(),
+      triagemService.listarEmAtendimento(),
+    ])
+      .then(([r1, r2]) => {
+        setAguardando(r1.data || [])
+        setEmAtendimento(r2.data || [])
+      })
+      .catch(() => {
+        setAguardando([])
+        setEmAtendimento([])
+      })
       .finally(() => setLoading(false))
   }
 
@@ -63,6 +73,8 @@ export default function Triagem() {
     carregar()
   }
 
+  const totalAtivos = aguardando.length + emAtendimento.length
+
   return (
     <div>
       {/* Header */}
@@ -71,12 +83,15 @@ export default function Triagem() {
           <h1 className="page-title">Triagem</h1>
           <p className="page-subtitle">Protocolo de Manchester — fila de atendimento em tempo real</p>
         </div>
-        <button
-          className={mostrarForm ? 'btn btn-ghost' : 'btn btn-primary'}
-          onClick={() => { setMostrarForm(!mostrarForm); setErro('') }}
-        >
-          {mostrarForm ? '✕ Cancelar' : '+ Nova Triagem'}
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-ghost btn-sm" onClick={carregar}>↺ Atualizar</button>
+          <button
+            className={mostrarForm ? 'btn btn-ghost' : 'btn btn-primary'}
+            onClick={() => { setMostrarForm(!mostrarForm); setErro('') }}
+          >
+            {mostrarForm ? '✕ Cancelar' : '+ Nova Triagem'}
+          </button>
+        </div>
       </div>
 
       {/* Formulário */}
@@ -159,7 +174,7 @@ export default function Triagem() {
               />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button type="submit" className="btn btn-primary" disabled={salvando}>
+              <button type="submit" className="btn btn-primary" disabled={salvando || !form.idPaciente}>
                 {salvando ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Salvando...</> : 'Registrar Triagem'}
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => { setMostrarForm(false); setErro('') }}>
@@ -171,10 +186,10 @@ export default function Triagem() {
       )}
 
       {/* Resumo por nível */}
-      {!loading && triagens.length > 0 && (
+      {!loading && totalAtivos > 0 && (
         <div className="grid-5" style={{ marginBottom: 24 }}>
           {RISCOS.map(r => {
-            const count = triagens.filter(t => t.nivelRisco === r).length
+            const count = [...aguardando, ...emAtendimento].filter(t => t.nivelRisco === r).length
             return (
               <div key={r} className="card" style={{ padding: '12px 16px', borderTop: `3px solid var(--risco-${r.toLowerCase()})` }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{r}</div>
@@ -186,41 +201,96 @@ export default function Triagem() {
         </div>
       )}
 
-      {/* Fila */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--gray-800)' }}>
-          Fila de Atendimento
-          {!loading && <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 500, color: 'var(--gray-400)' }}>({triagens.length})</span>}
-        </h2>
-        <button className="btn btn-ghost btn-sm" onClick={carregar}>↺ Atualizar</button>
-      </div>
-
       {loading ? (
         <div className="loading-block card"><span className="spinner" /> Carregando...</div>
-      ) : triagens.length === 0 ? (
-        <div className="card" style={{ padding: 48, textAlign: 'center', color: 'var(--gray-400)' }}>
-          <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
-          <div style={{ fontWeight: 600, color: 'var(--gray-600)' }}>Fila vazia</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>Todos os pacientes foram atendidos</div>
+      ) : (
+        <>
+          {/* Seção: Aguardando */}
+          <Section
+            titulo="Aguardando Atendimento"
+            cor="var(--warning)"
+            icone="⏳"
+            lista={aguardando}
+            acoes={(t) => (
+              <button
+                className="btn btn-sm"
+                style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}
+                onClick={() => atualizarStatus(t.id, 'EM_ATENDIMENTO')}
+              >
+                ▶ Iniciar
+              </button>
+            )}
+          />
+
+          {/* Seção: Em Atendimento */}
+          <Section
+            titulo="Em Atendimento"
+            cor="var(--success)"
+            icone="🩺"
+            lista={emAtendimento}
+            acoes={(t) => (
+              <button
+                className="btn btn-sm"
+                style={{ background: 'var(--success)', color: '#fff', border: 'none' }}
+                onClick={() => atualizarStatus(t.id, 'CONCLUIDA')}
+              >
+                ✓ Concluir
+              </button>
+            )}
+          />
+
+          {totalAtivos === 0 && (
+            <div className="card" style={{ padding: 48, textAlign: 'center', color: 'var(--gray-400)' }}>
+              <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
+              <div style={{ fontWeight: 600, color: 'var(--gray-600)' }}>Fila vazia</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>Todos os pacientes foram atendidos</div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function Section({ titulo, cor, icone, lista, acoes }) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <span style={{ fontSize: 18 }}>{icone}</span>
+        <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
+          {titulo}
+        </h2>
+        <span style={{
+          background: cor, color: '#fff',
+          borderRadius: 12, padding: '2px 10px',
+          fontSize: 12, fontWeight: 700,
+        }}>
+          {lista.length}
+        </span>
+      </div>
+
+      {lista.length === 0 ? (
+        <div className="card" style={{ padding: '16px 22px', color: 'var(--gray-400)', fontSize: 13, textAlign: 'center' }}>
+          Nenhum paciente nesta fila
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {triagens.map(t => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {lista.map(t => (
             <div
               key={t.id}
               className="card"
               style={{
-                padding: '18px 22px',
+                padding: '16px 22px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 16,
                 borderLeft: `4px solid var(--risco-${t.nivelRisco?.toLowerCase()})`,
               }}
             >
-              <span style={{ fontSize: 24, flexShrink: 0 }}>{RISCO_ICON[t.nivelRisco]}</span>
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{RISCO_ICON[t.nivelRisco]}</span>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                   <span className={`badge risco-${t.nivelRisco}`}>{t.nivelRisco}</span>
                   <span style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Paciente #{t.idPaciente}</span>
                   <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>
@@ -231,31 +301,16 @@ export default function Triagem() {
                   </span>
                 </div>
                 <p style={{
-                  fontSize: 13,
-                  color: 'var(--gray-500)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  margin: 0,
+                  fontSize: 13, color: 'var(--gray-500)',
+                  overflow: 'hidden', textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap', margin: 0,
                 }}>
                   {t.sintomas}
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <button
-                  className="btn btn-sm"
-                  style={{ background: 'var(--success)', color: '#fff', border: 'none' }}
-                  onClick={() => atualizarStatus(t.id, 'EM_ATENDIMENTO')}
-                >
-                  ▶ Iniciar
-                </button>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => atualizarStatus(t.id, 'CONCLUIDA')}
-                >
-                  ✓ Concluir
-                </button>
+              <div style={{ flexShrink: 0 }}>
+                {acoes(t)}
               </div>
             </div>
           ))}

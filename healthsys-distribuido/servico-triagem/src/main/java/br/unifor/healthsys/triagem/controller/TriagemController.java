@@ -38,6 +38,11 @@ public class TriagemController {
         return ResponseEntity.ok(triagemService.listarAguardando());
     }
 
+    @GetMapping("/api/triagens/em-atendimento")
+    public ResponseEntity<List<Triagem>> listarEmAtendimento() {
+        return ResponseEntity.ok(triagemService.listarEmAtendimento());
+    }
+
     @PatchMapping("/api/triagens/{id}/status")
     public ResponseEntity<Triagem> atualizarStatus(
             @PathVariable Long id,

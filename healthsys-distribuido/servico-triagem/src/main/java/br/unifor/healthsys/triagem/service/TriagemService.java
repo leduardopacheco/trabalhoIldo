@@ -61,6 +61,11 @@ public class TriagemService {
         return triagemRepository.findByStatusOrderByDataTriagemAsc(Triagem.StatusTriagem.AGUARDANDO);
     }
 
+    @Transactional(readOnly = true)
+    public List<Triagem> listarEmAtendimento() {
+        return triagemRepository.findByStatusOrderByDataTriagemAsc(Triagem.StatusTriagem.EM_ATENDIMENTO);
+    }
+
     @Transactional
     public Atendimento abrirAtendimento(Atendimento atendimento) {
         return atendimentoRepository.save(atendimento);
